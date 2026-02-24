@@ -7,9 +7,9 @@ Aluno: Thiago Sergio
 ## Algumas imagens do App
 
 <p align="center">
-  <img src="[LINK_1](https://github.com/user-attachments/assets/bec1f862-232a-4e49-846a-a8ac73b5f503)" width="30%" />
-  <img src="[LINK_2](https://github.com/user-attachments/assets/f9a61155-3a47-4809-b3c9-9420a675a970)" width="30%" />
-  <img src="[LINK_3](https://github.com/user-attachments/assets/f6116b81-7f5b-49d4-95cd-e5a398af932f)" width="30%" />
+  <img src="https://github.com/user-attachments/assets/bec1f862-232a-4e49-846a-a8ac73b5f503" width="30%" />
+  <img src="https://github.com/user-attachments/assets/f9a61155-3a47-4809-b3c9-9420a675a970" width="30%" />
+  <img src="https://github.com/user-attachments/assets/f6116b81-7f5b-49d4-95cd-e5a398af932f" width="30%" />
 </p>
 
 ## Descrição
