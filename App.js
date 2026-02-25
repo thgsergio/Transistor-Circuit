@@ -23,26 +23,59 @@ export default function App() {
     const rb = parseFloat(RB);
     const rc = parseFloat(RC);
     const b = parseFloat(beta);
+
     const VBE = 0.7;
+    const VCEsat = 0.2;
 
-    if (!vbb || !vcc || !rb || !rc || !b) return;
-
-    let IB = (vbb - VBE) / rb;
-    let IC = b * IB;
-    let ICmax = vcc / rc;
-
-    let saturated = false;
-
-    if (IC > ICmax) {
-      IC = ICmax;
-      saturated = true;
+    if (
+      isNaN(vbb) ||
+      isNaN(vcc) ||
+      isNaN(rb) ||
+      isNaN(rc) ||
+      isNaN(b)
+    ) {
+      return;
     }
 
-    let VC = vcc - IC * rc;
-    let VCE = VC;
-    let PT = VCE * IC;
-    let PRC = IC * IC * rc;
-    let PRB = IB * IB * rb;
+    let IB = 0;
+    let IC = 0;
+    let ICmax = 0;
+    let VC = 0;
+    let VCE = 0;
+    let region = "";
+
+    // ================= CORTE =================
+    if (vbb <= VBE) {
+      IB = 0;
+      IC = 0;
+      ICmax = (vcc - VCEsat) / rc;
+      VC = vcc;
+      VCE = vcc;
+      region = "Corte";
+    } else {
+      IB = (vbb - VBE) / rb;
+      const IC_teorico = b * IB;
+      ICmax = (vcc - VCEsat) / rc;
+
+      // ================= SATURAÇÃO =================
+      if (IC_teorico >= ICmax) {
+        IC = ICmax;
+        VCE = VCEsat;
+        VC = VCEsat;
+        region = "Saturação";
+      }
+      // ================= ATIVA =================
+      else {
+        IC = IC_teorico;
+        VC = vcc - IC * rc;
+        VCE = VC;
+        region = "Região Ativa";
+      }
+    }
+
+    const PT = VCE * IC;
+    const PRC = IC * IC * rc;
+    const PRB = IB * IB * rb;
 
     setResult({
       IB,
@@ -53,7 +86,7 @@ export default function App() {
       PT,
       PRC,
       PRB,
-      saturated
+      region
     });
   };
 
@@ -81,7 +114,12 @@ export default function App() {
             styles.card,
             {
               borderLeftWidth: 6,
-              borderLeftColor: result.saturated ? "#dc2626" : "#16a34a"
+              borderLeftColor:
+                result.region === "Saturação"
+                  ? "#dc2626"
+                  : result.region === "Corte"
+                    ? "#f59e0b"
+                    : "#16a34a"
             }
           ]}
         >
@@ -103,10 +141,15 @@ export default function App() {
               style={{
                 fontWeight: "700",
                 fontSize: 15,
-                color: result.saturated ? "#dc2626" : "#16a34a"
+                color:
+                  result.region === "Saturação"
+                    ? "#dc2626"
+                    : result.region === "Corte"
+                      ? "#f59e0b"
+                      : "#16a34a"
               }}
             >
-              Estado: {result.saturated ? "Saturado" : "Região Ativa"}
+              Estado: {result.region}
             </Text>
           </View>
         </View>
