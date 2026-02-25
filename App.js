@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'; 
+import React, { useState, useRef, useEffect } from 'react';
 import Svg, { Line, Circle, Text as SvgText, Path } from 'react-native-svg';
 import {
   View,
@@ -17,6 +17,8 @@ export default function App() {
   const [RC, setRC] = useState("100");
   const [beta, setBeta] = useState("100");
   const [RE, setRE] = useState("1000");
+  const [R1, setR1] = useState("10000");
+  const [R2, setR2] = useState("10000");
   const [mode, setMode] = useState("RB");
   const [result, setResult] = useState(null);
 
@@ -32,10 +34,10 @@ export default function App() {
     const VCEsat = 0.2;
 
     if (
-      isNaN(vbb) ||
       isNaN(vcc) ||
       isNaN(rc) ||
       isNaN(b) ||
+      (mode === "DIV" && isNaN(vbb)) ||
       (mode === "RB" && isNaN(rb)) ||
       (mode === "RE" && isNaN(re))
     ) {
@@ -109,6 +111,45 @@ export default function App() {
         }
       }
     }
+    // ========================= MODO DIVISOR =========================
+    if (mode === "DIV") {
+
+      const r1 = parseFloat(R1);
+      const r2 = parseFloat(R2);
+      const re = parseFloat(RE);
+
+      if (isNaN(r1) || isNaN(r2) || isNaN(re)) return;
+
+      // Tensão na base pelo divisor
+      const Vth = vcc * (r2 / (r1 + r2));
+      const Rth = (r1 * r2) / (r1 + r2);
+
+      if (Vth <= VBE) {
+        IB = 0;
+        IC = 0;
+        ICmax = (vcc - VCEsat) / rc;
+        VC = vcc;
+        VCE = vcc;
+        region = "Corte";
+      } else {
+
+        IB = (Vth - VBE) / (Rth + (b + 1) * re);
+        const IC_teorico = b * IB;
+        ICmax = (vcc - VCEsat) / rc;
+
+        if (IC_teorico >= ICmax) {
+          IC = ICmax;
+          VCE = VCEsat;
+          VC = VCEsat;
+          region = "Saturação";
+        } else {
+          IC = IC_teorico;
+          VC = vcc - IC * rc;
+          VCE = VC - ((b + 1) * IB * re);
+          region = "Região Ativa";
+        }
+      }
+    }
 
     const PT = VCE * IC;
     const PRC = IC * IC * rc;
@@ -151,13 +192,29 @@ export default function App() {
         >
           <Text style={styles.modeText}>Com RE</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.modeButton,
+            mode === "DIV" && styles.modeButtonActive
+          ]}
+          onPress={() => setMode("DIV")}
+        >
+          <Text style={styles.modeText}>Divisor</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.card}>
+        <CircuitDiagram mode={mode} />
       </View>
 
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Entradas</Text>
 
 
-        <Input label="VBB (V)" value={VBB} setValue={setVBB} />
+        {mode !== "DIV" && (
+          <Input label="VBB (V)" value={VBB} setValue={setVBB} />
+        )}
         <Input label="VCC (V)" value={VCC} setValue={setVCC} />
         {mode === "RB" && (
           <Input label="RB (Ω)" value={RB} setValue={setRB} />
@@ -165,6 +222,13 @@ export default function App() {
 
         {mode === "RE" && (
           <Input label="RE (Ω)" value={RE} setValue={setRE} />
+        )}
+        {mode === "DIV" && (
+          <>
+            <Input label="R1 (Ω)" value={R1} setValue={setR1} />
+            <Input label="R2 (Ω)" value={R2} setValue={setR2} />
+            <Input label="RE (Ω)" value={RE} setValue={setRE} />
+          </>
         )}
         <Input label="RC (Ω)" value={RC} setValue={setRC} />
         <Input label="Beta (β)" value={beta} setValue={setBeta} />
@@ -220,9 +284,6 @@ export default function App() {
           </View>
         </View>
       )}
-      <View style={styles.card}>
-        <CircuitDiagram mode={mode} />
-      </View>
     </ScrollView>
   );
 }
@@ -388,7 +449,9 @@ function CircuitDiagram({ mode }) {
       <Text style={{ fontSize: 18, fontWeight: "600", marginBottom: 10 }}>
         {mode === "RB"
           ? "Emissor Comum com Polarização por RB"
-          : "Emissor Comum com Resistor de Emissor (RE)"}
+          : mode === "RE"
+            ? "Emissor Comum com RE"
+            : "Emissor Comum com Divisor de Tensão"}
       </Text>
 
       <Svg width="420" height="420">
@@ -398,35 +461,68 @@ function CircuitDiagram({ mode }) {
         <Line x1="255" y1="370" x2="285" y2="370" stroke="black" strokeWidth="2" />
         <Line x1="260" y1="380" x2="280" y2="380" stroke="black" strokeWidth="2" />
 
+        {/* ================= RC ================= */}
+
+        {mode !== "DIV" && (
+          <>
+            {/* Fio superior até RC */}
+            <Line x1="350" y1="80" x2="300" y2="80" stroke="black" strokeWidth="2" />
+
+            {/* RC horizontal */}
+            <Path
+              d="M300 80
+         L290 70
+         L280 90
+         L270 70
+         L260 90
+         L250 70
+         L240 90
+         L230 80"
+              stroke="black"
+              fill="none"
+              strokeWidth="2"
+            />
+
+            <SvgText x="255" y="65" fontSize="14" fontWeight="bold">
+              RC
+            </SvgText>
+
+            {/* Fio vertical até coletor */}
+            <Line x1="230" y1="80" x2="230" y2="175" stroke="black" strokeWidth="2" />
+          </>
+        )}
+
+        {mode === "DIV" && (
+          <>
+            {/* Barramento VCC horizontal */}
+            <Line x1="350" y1="80" x2="230" y2="80" stroke="black" strokeWidth="2" />
+
+            {/* RC vertical */}
+            <Path
+              d="M230 80
+         L220 90
+         L240 100
+         L220 110
+         L240 120
+         L220 130
+         L240 140
+         L230 150"
+              stroke="black"
+              fill="none"
+              strokeWidth="2"
+            />
+
+            <SvgText x="245" y="115" fontSize="14" fontWeight="bold">
+              RC
+            </SvgText>
+
+            {/* Fio até coletor */}
+            <Line x1="230" y1="150" x2="230" y2="175" stroke="black" strokeWidth="2" />
+          </>
+        )}
+
         {/* ================= VCC ================= */}
 
-        {/* Fio superior até RC */}
-        <Line x1="350" y1="80" x2="300" y2="80" stroke="black" strokeWidth="2" />
-
-        {/* RC horizontal */}
-        <Path
-          d="M300 80
-             L290 70
-             L280 90
-             L270 70
-             L260 90
-             L250 70
-             L240 90
-             L230 80"
-          stroke="black"
-          fill="none"
-          strokeWidth="2"
-        />
-
-        {/* Texto RC */}
-        <SvgText x="255" y="65" fontSize="14" fontWeight="bold">
-          RC
-        </SvgText>
-
-        {/* Fio vertical até coletor */}
-        <Line x1="230" y1="80" x2="230" y2="175" stroke="black" strokeWidth="2" />
-
-        {/* Fonte VCC */}
         <Circle cx="350" cy="170" r="20" stroke="black" fill="none" strokeWidth="2" />
         <SvgText x="343" y="165" fontSize="14">+</SvgText>
         <SvgText x="343" y="180" fontSize="14">−</SvgText>
@@ -500,7 +596,7 @@ function CircuitDiagram({ mode }) {
               fill="none"
               strokeWidth="2"
             />
-            
+
             {/* RE texto */}
             <SvgText x="255" y="320" fontSize="14" fontWeight="bold">
               RE
@@ -515,21 +611,107 @@ function CircuitDiagram({ mode }) {
         )}
 
         {/* ================= VBB ================= */}
+        {mode !== "DIV" && (
+          <>
+            {/* Fonte VBB */}
+            <Circle cx="70" cy="270" r="20" stroke="black" fill="none" strokeWidth="2" />
+            <SvgText x="63" y="265" fontSize="14">+</SvgText>
+            <SvgText x="63" y="280" fontSize="14">−</SvgText>
+            <SvgText x="30" y="247" fontSize="14" fontWeight="bold">VBB</SvgText>
 
-        {/* Fonte VBB */}
-        <Circle cx="70" cy="270" r="20" stroke="black" fill="none" strokeWidth="2" />
-        <SvgText x="63" y="265" fontSize="14">+</SvgText>
-        <SvgText x="63" y="280" fontSize="14">−</SvgText>
-        <SvgText x="30" y="247" fontSize="14" fontWeight="bold">VBB</SvgText>
+            {/* Ligação positiva (sem diagonal) */}
+            <Line x1="70" y1="250" x2="70" y2="220" stroke="black" strokeWidth="2" />
+            <Line x1="70" y1="220" x2="100" y2="220" stroke="black" strokeWidth="2" />
 
-        {/* Ligação positiva (sem diagonal) */}
-        <Line x1="70" y1="250" x2="70" y2="220" stroke="black" strokeWidth="2" />
-        <Line x1="70" y1="220" x2="100" y2="220" stroke="black" strokeWidth="2" />
+            {/* Negativo até GND */}
+            <Line x1="70" y1="290" x2="70" y2="340" stroke="black" strokeWidth="2" />
+            <Line x1="70" y1="340" x2="270" y2="340" stroke="black" strokeWidth="2" />
+          </>
+        )}
 
-        {/* Negativo até GND */}
-        <Line x1="70" y1="290" x2="70" y2="340" stroke="black" strokeWidth="2" />
-        <Line x1="70" y1="340" x2="270" y2="340" stroke="black" strokeWidth="2" />
+        {mode === "DIV" && (
+          <>
+            {/* ========= R1 (mais abaixo e mais à esquerda) ========= */}
 
+            {/* fio de conexão com o VCC */}
+            <Line x1="230" y1="80" x2="120" y2="80" stroke="black" strokeWidth="2" />
+
+            {/* fio descendo do barramento VCC */}
+            <Line x1="120" y1="80" x2="120" y2="150" stroke="black" strokeWidth="2" />
+
+            {/* R1 */}
+            <Path
+              d="M120 150
+         L110 160
+         L130 170
+         L110 180
+         L130 190
+         L110 200
+         L120 210"
+              stroke="black"
+              fill="none"
+              strokeWidth="2"
+            />
+
+            <SvgText x="85" y="185" fontSize="14" fontWeight="bold">
+              R1
+            </SvgText>
+
+            {/* ========= NÓ DA BASE (horizontal real agora) ========= */}
+
+            {/* fio horizontal até a base */}
+            <Line x1="120" y1="210" x2="210" y2="210" stroke="black" strokeWidth="2" />
+
+            {/* pequeno ajuste vertical até o centro da base */}
+            <Line x1="210" y1="210" x2="210" y2="220" stroke="black" strokeWidth="2" />
+
+            {/* ========= R2 ========= */}
+
+            <Path
+              d="M120 210
+         L110 220
+         L130 230
+         L110 240
+         L130 250
+         L110 260
+         L120 270"
+              stroke="black"
+              fill="none"
+              strokeWidth="2"
+            />
+
+            <SvgText x="85" y="245" fontSize="14" fontWeight="bold">
+              R2
+            </SvgText>
+
+            {/* fio até GND */}
+            <Line x1="120" y1="270" x2="120" y2="340" stroke="black" strokeWidth="2" />
+            <Line x1="120" y1="340" x2="270" y2="340" stroke="black" strokeWidth="2" />
+
+            {/* ========= RE ========= */}
+
+            <Path
+              d="M240 265
+         L230 275
+         L250 285
+         L230 295
+         L250 305
+         L230 315
+         L240 325"
+              stroke="black"
+              fill="none"
+              strokeWidth="2"
+            />
+
+            <SvgText x="260" y="305" fontSize="14" fontWeight="bold">
+              RE
+            </SvgText>
+
+            {/* RE até GND */}
+            <Line x1="240" y1="325" x2="240" y2="340" stroke="black" strokeWidth="2" />
+            <Line x1="240" y1="340" x2="270" y2="340" stroke="black" strokeWidth="2" />
+          </>
+        )}
       </Svg>
     </Animated.View>
   );
