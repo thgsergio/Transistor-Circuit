@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react'; 
 import Svg, { Line, Circle, Text as SvgText, Path } from 'react-native-svg';
 import {
   View,
@@ -6,7 +6,8 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  StyleSheet
+  StyleSheet,
+  Animated
 } from 'react-native';
 
 export default function App() {
@@ -15,6 +16,8 @@ export default function App() {
   const [RB, setRB] = useState("10000");
   const [RC, setRC] = useState("100");
   const [beta, setBeta] = useState("100");
+  const [RE, setRE] = useState("1000");
+  const [mode, setMode] = useState("RB");
   const [result, setResult] = useState(null);
 
   const calculate = () => {
@@ -22,6 +25,7 @@ export default function App() {
     const vcc = parseFloat(VCC);
     const rb = parseFloat(RB);
     const rc = parseFloat(RC);
+    const re = parseFloat(RE);
     const b = parseFloat(beta);
 
     const VBE = 0.7;
@@ -30,9 +34,10 @@ export default function App() {
     if (
       isNaN(vbb) ||
       isNaN(vcc) ||
-      isNaN(rb) ||
       isNaN(rc) ||
-      isNaN(b)
+      isNaN(b) ||
+      (mode === "RB" && isNaN(rb)) ||
+      (mode === "RE" && isNaN(re))
     ) {
       return;
     }
@@ -44,38 +49,70 @@ export default function App() {
     let VCE = 0;
     let region = "";
 
-    // ================= CORTE =================
-    if (vbb <= VBE) {
-      IB = 0;
-      IC = 0;
-      ICmax = (vcc - VCEsat) / rc;
-      VC = vcc;
-      VCE = vcc;
-      region = "Corte";
-    } else {
-      IB = (vbb - VBE) / rb;
-      const IC_teorico = b * IB;
-      ICmax = (vcc - VCEsat) / rc;
+    // ========================= MODO RB =========================
+    if (mode === "RB") {
 
-      // ================= SATURAÇÃO =================
-      if (IC_teorico >= ICmax) {
-        IC = ICmax;
-        VCE = VCEsat;
-        VC = VCEsat;
-        region = "Saturação";
+      if (vbb <= VBE) {
+        IB = 0;
+        IC = 0;
+        ICmax = (vcc - VCEsat) / rc;
+        VC = vcc;
+        VCE = vcc;
+        region = "Corte";
+      } else {
+        IB = (vbb - VBE) / rb;
+        const IC_teorico = b * IB;
+        ICmax = (vcc - VCEsat) / rc;
+
+        if (IC_teorico >= ICmax) {
+          IC = ICmax;
+          VCE = VCEsat;
+          VC = VCEsat;
+          region = "Saturação";
+        } else {
+          IC = IC_teorico;
+          VC = vcc - IC * rc;
+          VCE = VC;
+          region = "Região Ativa";
+        }
       }
-      // ================= ATIVA =================
-      else {
-        IC = IC_teorico;
-        VC = vcc - IC * rc;
-        VCE = VC;
-        region = "Região Ativa";
+    }
+
+    // ========================= MODO RE =========================
+    if (mode === "RE") {
+
+      if (vbb <= VBE) {
+        IB = 0;
+        IC = 0;
+        ICmax = (vcc - VCEsat) / rc;
+        VC = vcc;
+        VCE = vcc;
+        region = "Corte";
+      } else {
+
+        // Novo cálculo da base considerando RE
+        IB = (vbb - VBE) / ((b + 1) * re);
+        const IC_teorico = b * IB;
+
+        ICmax = (vcc - VCEsat) / rc;
+
+        if (IC_teorico >= ICmax) {
+          IC = ICmax;
+          VCE = VCEsat;
+          VC = VCEsat;
+          region = "Saturação";
+        } else {
+          IC = IC_teorico;
+          VC = vcc - IC * rc;
+          VCE = VC - ((b + 1) * IB * re); // considera queda em RE
+          region = "Região Ativa";
+        }
       }
     }
 
     const PT = VCE * IC;
     const PRC = IC * IC * rc;
-    const PRB = IB * IB * rb;
+    const PRB = mode === "RB" ? IB * IB * rb : 0;
 
     setResult({
       IB,
@@ -94,12 +131,41 @@ export default function App() {
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Calculadora de Transistor</Text>
 
+      <View style={{ flexDirection: "row", marginBottom: 20 }}>
+        <TouchableOpacity
+          style={[
+            styles.modeButton,
+            mode === "RB" && styles.modeButtonActive
+          ]}
+          onPress={() => setMode("RB")}
+        >
+          <Text style={styles.modeText}>Com RB</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.modeButton,
+            mode === "RE" && styles.modeButtonActive
+          ]}
+          onPress={() => setMode("RE")}
+        >
+          <Text style={styles.modeText}>Com RE</Text>
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Entradas</Text>
 
+
         <Input label="VBB (V)" value={VBB} setValue={setVBB} />
         <Input label="VCC (V)" value={VCC} setValue={setVCC} />
-        <Input label="RB (Ω)" value={RB} setValue={setRB} />
+        {mode === "RB" && (
+          <Input label="RB (Ω)" value={RB} setValue={setRB} />
+        )}
+
+        {mode === "RE" && (
+          <Input label="RE (Ω)" value={RE} setValue={setRE} />
+        )}
         <Input label="RC (Ω)" value={RC} setValue={setRC} />
         <Input label="Beta (β)" value={beta} setValue={setBeta} />
 
@@ -155,7 +221,7 @@ export default function App() {
         </View>
       )}
       <View style={styles.card}>
-        <CircuitDiagram />
+        <CircuitDiagram mode={mode} />
       </View>
     </ScrollView>
   );
@@ -185,6 +251,24 @@ function Result({ label, value }) {
 }
 
 const styles = StyleSheet.create({
+  modeButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: "#e2e8f0",
+    alignItems: "center",
+    marginRight: 10
+  },
+
+  modeButtonActive: {
+    backgroundColor: "#2563eb"
+  },
+
+  modeText: {
+    fontWeight: "600",
+    color: "white"
+  },
+
   container: {
     padding: 20,
     backgroundColor: "#eef2f7",
@@ -279,11 +363,32 @@ const styles = StyleSheet.create({
   }
 });
 
-function CircuitDiagram() {
+function CircuitDiagram({ mode }) {
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.sequence([
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true
+      })
+    ]).start();
+  }, [mode]);
+
   return (
-    <View style={{ alignItems: "center", marginTop: 30 }}>
+    <Animated.View
+      style={{ alignItems: "center", marginTop: 30, opacity: fadeAnim }}
+    >
       <Text style={{ fontSize: 18, fontWeight: "600", marginBottom: 10 }}>
-        Circuito Emissor Comum
+        {mode === "RB"
+          ? "Emissor Comum com Polarização por RB"
+          : "Emissor Comum com Resistor de Emissor (RE)"}
       </Text>
 
       <Svg width="420" height="420">
@@ -313,6 +418,11 @@ function CircuitDiagram() {
           strokeWidth="2"
         />
 
+        {/* Texto RC */}
+        <SvgText x="255" y="65" fontSize="14" fontWeight="bold">
+          RC
+        </SvgText>
+
         {/* Fio vertical até coletor */}
         <Line x1="230" y1="80" x2="230" y2="175" stroke="black" strokeWidth="2" />
 
@@ -320,7 +430,7 @@ function CircuitDiagram() {
         <Circle cx="350" cy="170" r="20" stroke="black" fill="none" strokeWidth="2" />
         <SvgText x="343" y="165" fontSize="14">+</SvgText>
         <SvgText x="343" y="180" fontSize="14">−</SvgText>
-        <SvgText x="335" y="205" fontSize="14">VCC</SvgText>
+        <SvgText x="360" y="147" fontSize="14" fontWeight="bold">VCC</SvgText>
 
         {/* Fio do topo da fonte até nó RC */}
         <Line x1="350" y1="150" x2="350" y2="80" stroke="black" strokeWidth="2" />
@@ -344,27 +454,65 @@ function CircuitDiagram() {
         {/* Seta NPN */}
         <Path d="M240 257 L240 265 L232 267 Z" fill="black" />
 
-        {/* Emissor até GND */}
-        <Line x1="240" y1="265" x2="240" y2="340" stroke="black" strokeWidth="2" />
+        {/* ================= EMISSOR E RESISTOR ================= */}
 
-        {/* ================= RB ================= */}
+        {mode === "RB" && (
+          <>
+            {/* Emissor direto para GND */}
+            <Line x1="240" y1="265" x2="240" y2="340" stroke="black" strokeWidth="2" />
 
-        {/* RB horizontal */}
-        <Path
-          d="M100 220
-             L110 210
-             L120 230
-             L130 210
-             L140 230
-             L150 210
-             L160 220"
-          stroke="black"
-          fill="none"
-          strokeWidth="2"
-        />
+            {/* RB horizontal */}
+            <Path
+              d="M100 220
+         L110 210
+         L120 230
+         L130 210
+         L140 230
+         L150 210
+         L160 220"
+              stroke="black"
+              fill="none"
+              strokeWidth="2"
+            />
 
-        {/* Fio até base */}
-        <Line x1="160" y1="220" x2="210" y2="220" stroke="black" strokeWidth="2" />
+            {/* RB texto */}
+            <SvgText x="120" y="200" fontSize="14" fontWeight="bold">
+              RB
+            </SvgText>
+
+            {/* Fio até base */}
+            <Line x1="160" y1="220" x2="210" y2="220" stroke="black" strokeWidth="2" />
+          </>
+        )}
+
+        {mode === "RE" && (
+          <>
+            {/* RE vertical no emissor */}
+            <Path
+              d="M240 265
+         L230 275
+         L250 285
+         L230 295
+         L250 305
+         L230 315
+         L240 325"
+              stroke="black"
+              fill="none"
+              strokeWidth="2"
+            />
+            
+            {/* RE texto */}
+            <SvgText x="255" y="320" fontSize="14" fontWeight="bold">
+              RE
+            </SvgText>
+
+            {/* Fio até GND */}
+            <Line x1="240" y1="325" x2="240" y2="340" stroke="black" strokeWidth="2" />
+
+            {/* Base ligada direto à fonte */}
+            <Line x1="100" y1="220" x2="210" y2="220" stroke="black" strokeWidth="2" />
+          </>
+        )}
 
         {/* ================= VBB ================= */}
 
@@ -372,7 +520,7 @@ function CircuitDiagram() {
         <Circle cx="70" cy="270" r="20" stroke="black" fill="none" strokeWidth="2" />
         <SvgText x="63" y="265" fontSize="14">+</SvgText>
         <SvgText x="63" y="280" fontSize="14">−</SvgText>
-        <SvgText x="55" y="305" fontSize="14">VBB</SvgText>
+        <SvgText x="30" y="247" fontSize="14" fontWeight="bold">VBB</SvgText>
 
         {/* Ligação positiva (sem diagonal) */}
         <Line x1="70" y1="250" x2="70" y2="220" stroke="black" strokeWidth="2" />
@@ -383,6 +531,6 @@ function CircuitDiagram() {
         <Line x1="70" y1="340" x2="270" y2="340" stroke="black" strokeWidth="2" />
 
       </Svg>
-    </View>
+    </Animated.View>
   );
 }
