@@ -76,24 +76,44 @@ export default function App() {
       </View>
 
       {result && (
-        <View style={styles.card}>
+        <View
+          style={[
+            styles.card,
+            {
+              borderLeftWidth: 6,
+              borderLeftColor: result.saturated ? "#dc2626" : "#16a34a"
+            }
+          ]}
+        >
           <Text style={styles.sectionTitle}>Resultados</Text>
 
-          <Result label="IB" value={`${result.IB.toExponential(3)} A`} />
-          <Result label="IC" value={`${result.IC.toExponential(3)} A`} />
-          <Result label="IC Máx" value={`${result.ICmax.toExponential(3)} A`} />
-          <Result label="VC" value={`${result.VC.toFixed(2)} V`} />
-          <Result label="VCE" value={`${result.VCE.toFixed(2)} V`} />
-          <Result label="Potência Transistor" value={`${result.PT.toFixed(3)} W`} />
-          <Result label="Potência RC" value={`${result.PRC.toFixed(3)} W`} />
-          <Result label="Potência RB" value={`${result.PRB.toFixed(6)} W`} />
-          <Result
-            label="Estado"
-            value={result.saturated ? "Saturado" : "Região Ativa"}
-          />
+          <View style={styles.resultGrid}>
+            <Result label="IB" value={`${result.IB.toExponential(3)} A`} />
+            <Result label="IC" value={`${result.IC.toExponential(3)} A`} />
+            <Result label="IC Máx" value={`${result.ICmax.toExponential(3)} A`} />
+            <Result label="VC" value={`${result.VC.toFixed(2)} V`} />
+            <Result label="VCE" value={`${result.VCE.toFixed(2)} V`} />
+            <Result label="P Trans." value={`${result.PT.toFixed(3)} W`} />
+            <Result label="P RC" value={`${result.PRC.toFixed(3)} W`} />
+            <Result label="P RB" value={`${result.PRB.toFixed(6)} W`} />
+          </View>
+
+          <View style={{ marginTop: 10 }}>
+            <Text
+              style={{
+                fontWeight: "700",
+                fontSize: 15,
+                color: result.saturated ? "#dc2626" : "#16a34a"
+              }}
+            >
+              Estado: {result.saturated ? "Saturado" : "Região Ativa"}
+            </Text>
+          </View>
         </View>
       )}
-      <CircuitDiagram />
+      <View style={styles.card}>
+        <CircuitDiagram />
+      </View>
     </ScrollView>
   );
 }
@@ -114,7 +134,7 @@ function Input({ label, value, setValue }) {
 
 function Result({ label, value }) {
   return (
-    <View style={styles.resultRow}>
+    <View style={styles.resultBox}>
       <Text style={styles.resultLabel}>{label}</Text>
       <Text style={styles.resultValue}>{value}</Text>
     </View>
@@ -124,65 +144,94 @@ function Result({ label, value }) {
 const styles = StyleSheet.create({
   container: {
     padding: 20,
-    backgroundColor: "#f4f6f9",
+    backgroundColor: "#eef2f7",
     flexGrow: 1
   },
+
   title: {
-    fontSize: 26,
-    fontWeight: "bold",
-    marginBottom: 20,
+    fontSize: 28,
+    fontWeight: "800",
+    marginBottom: 24,
     textAlign: "center",
-    color: "#1e293b"
+    color: "#0f172a",
+    letterSpacing: 0.5
   },
+
   card: {
     backgroundColor: "#ffffff",
-    padding: 18,
-    borderRadius: 12,
-    marginBottom: 20,
+    padding: 20,
+    borderRadius: 18,
+    marginBottom: 24,
     shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4
   },
+
   sectionTitle: {
     fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 12,
-    color: "#334155"
+    fontWeight: "700",
+    marginBottom: 16,
+    color: "#1e293b"
   },
+
   label: {
-    marginBottom: 4,
-    color: "#475569"
+    marginBottom: 6,
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#64748b"
   },
+
   input: {
     borderWidth: 1,
-    borderColor: "#cbd5e1",
-    borderRadius: 8,
-    padding: 10,
-    backgroundColor: "#f8fafc"
+    borderColor: "#e2e8f0",
+    borderRadius: 12,
+    padding: 12,
+    backgroundColor: "#f8fafc",
+    fontSize: 15
   },
+
   button: {
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 14,
+    alignItems: "center",
     backgroundColor: "#2563eb",
-    padding: 14,
-    borderRadius: 10,
-    marginTop: 10,
-    alignItems: "center"
+    shadowColor: "#2563eb",
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 6
   },
+
   buttonText: {
     color: "white",
-    fontWeight: "bold",
-    fontSize: 16
+    fontWeight: "700",
+    fontSize: 16,
+    letterSpacing: 0.5
   },
-  resultRow: {
+
+  resultGrid: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 8
+    flexWrap: "wrap",
+    justifyContent: "space-between"
   },
+
+  resultBox: {
+    width: "48%",
+    backgroundColor: "#f1f5f9",
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 12
+  },
+
   resultLabel: {
-    color: "#475569"
+    fontSize: 12,
+    color: "#64748b"
   },
+
   resultValue: {
-    fontWeight: "600",
+    fontSize: 15,
+    fontWeight: "700",
     color: "#0f172a"
   }
 });
