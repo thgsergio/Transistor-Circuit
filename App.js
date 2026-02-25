@@ -314,7 +314,7 @@ function CircuitDiagram() {
         />
 
         {/* Fio vertical até coletor */}
-        <Line x1="230" y1="80" x2="230" y2="140" stroke="black" strokeWidth="2" />
+        <Line x1="230" y1="80" x2="230" y2="175" stroke="black" strokeWidth="2" />
 
         {/* Fonte VCC */}
         <Circle cx="350" cy="170" r="20" stroke="black" fill="none" strokeWidth="2" />
@@ -333,19 +333,19 @@ function CircuitDiagram() {
         {/* ================= TRANSISTOR ================= */}
 
         {/* Base vertical */}
-        <Line x1="210" y1="150" x2="210" y2="270" stroke="black" strokeWidth="2" />
+        <Line x1="210" y1="185" x2="210" y2="255" stroke="black" strokeWidth="2" />
 
         {/* Coletor inclinado */}
-        <Line x1="210" y1="170" x2="230" y2="140" stroke="black" strokeWidth="2" />
+        <Line x1="210" y1="205" x2="230" y2="175" stroke="black" strokeWidth="2" />
 
         {/* Emissor */}
-        <Line x1="210" y1="250" x2="240" y2="280" stroke="black" strokeWidth="2" />
+        <Line x1="210" y1="235" x2="240" y2="265" stroke="black" strokeWidth="2" />
 
         {/* Seta NPN */}
-        <Path d="M235 275 L240 280 L232 282 Z" fill="black" />
+        <Path d="M240 257 L240 265 L232 267 Z" fill="black" />
 
         {/* Emissor até GND */}
-        <Line x1="240" y1="280" x2="240" y2="340" stroke="black" strokeWidth="2" />
+        <Line x1="240" y1="265" x2="240" y2="340" stroke="black" strokeWidth="2" />
 
         {/* ================= RB ================= */}
 
