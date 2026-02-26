@@ -27,7 +27,7 @@ O objetivo é facilitar a verificação rápida de resultados e auxiliar no estu
 ## Como usar
 
 1. Acesse o link de instalação:  
-   [Install APK](https://expo.dev/accounts/thg_sergio/projects/circuitoApp/builds/0d36404c-244b-42b0-a9b0-8a70ae0a530a)
+   [Install APK](https://expo.dev/accounts/thg_sergio/projects/circuitoApp/builds/9e205a3c-fc60-46ba-bbb3-1ef790a5e71b)
 
 2. Faça o download do APK.
 
